@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  alarms:
+    build: .
+    container_name: alarms-service
+    env_file: .env
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
