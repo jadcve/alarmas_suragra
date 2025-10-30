@@ -1,10 +1,12 @@
 {
-  "name": "alarms-service",
+  "type": "module",
+  "name": "alarmas_suragra",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "test:campania": "node src/tools/test-campania-nmor.js",  
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "lint": "eslint .",
@@ -31,4 +33,5 @@
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2"
   }
+  
 }

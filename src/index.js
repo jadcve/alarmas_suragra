@@ -38,4 +38,17 @@ cron.schedule('0 9 * * 1', async () => {
   await executeJob('NETO', (db)=> runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }));
 }, { timezone: cfg.tz });
 
+
+// Al final de src/index.js, agrega un modo “one-shot” por CLI:
+if (process.argv.includes('--run-neto')) {
+  const db = getDb();                         // devolverá pool MSSQL por DB_SOURCE
+  const { runNeto } = await import('./modules/neto/neto.service.js');
+  const hoyISO = new Date().toISOString().slice(0,10);
+  await (async () => {
+    try { await runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }); }
+    finally { db.close?.(); }
+  })();
+}
+
+
 console.log('Alarms up. TZ:', cfg.tz);
