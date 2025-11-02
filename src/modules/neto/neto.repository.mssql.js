@@ -50,16 +50,21 @@ export async function* getClientes(pool) {
 }
 
 // Contactos por cliente
+// src/modules/neto/neto.repository.mssql.js
 export async function getContactos(pool, codIdtSap) {
-  const req = pool.request();
-  req.input('COD_IDT_SAP', sql.VarChar, codIdtSap);
-  req.output('CAN_CTC', sql.Int);
-  const rs = await req.execute('SP_SGR_CNA_CTC_CLT_SAP');
-  return {
-    contactos: rs.recordset ?? [],
-    count: req.parameters.CAN_CTC.value ?? rs.recordset?.length ?? 0
-  };
+  const rs = await pool.request()
+    .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
+    .output('CAN_CTC', sql.Int)
+    .execute('SP_SGR_CNA_CTC_CLT_SAP');
+
+  const contactos = (rs.recordset ?? []).map(x => ({
+    ...x,
+    COD_CTC: x.COD_CTC ?? x.COD_IDT_CTC ?? 0, // 👈 siempre trae COD_CTC
+  }));
+  const count = rs.output?.CAN_CTC ?? contactos.length;
+  return { contactos, count };
 }
+
 
 // Detalle de documentos (recordsets)
 export async function getRegistros(pool, codIdtSap) {
@@ -69,18 +74,22 @@ export async function getRegistros(pool, codIdtSap) {
   return rs.recordsets ?? [];
 }
 
-// Bitácora de envío
+// src/modules/neto/neto.repository.mssql.js
 export async function insertLog(pool, { codIdtSap, codCtc, codigo, error }) {
   try {
+    const ctc = (codCtc === null || codCtc === undefined || codCtc === '' ? 0 : Number(codCtc));
     await pool.request()
-      .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
-      .input('COD_IDT_CTC', sql.VarChar, codCtc)
-      .input('FLG_EML_ENV', sql.Int, codigo)
+      .input('COD_IDT_SAP', sql.VarChar, String(codIdtSap ?? ''))
+      .input('COD_IDT_CTC', sql.Int, isNaN(ctc) ? 0 : ctc)       // 👈 INT y con fallback 0
+      .input('FLG_EML_ENV', sql.Int, Number(codigo ?? 0))
       .input('COD_CNP', sql.VarChar, 'NMOR')
       .input('GLS_ERR', sql.VarChar, String(error ?? ''))
       .execute('SP_SGR_INS_TRZ_ALT');
   } catch (e) {
-    // no romper el job por fallar la bitácora
     logger.warn({ e, codIdtSap, codCtc }, 'Fallo insertLog');
   }
 }
+
+
+
+

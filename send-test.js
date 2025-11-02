@@ -2,37 +2,46 @@
 import 'dotenv/config';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
-const ses = new SESClient({ region: process.env.AWS_REGION });
-
-async function main() {
-  const to = (process.env.TEST_RECIPIENTS ?? '')
+function getList(envKey) {
+  return (process.env[envKey] || '')
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
-
-  const subject = 'Prueba SES local ✔';
-  const htmlBody = `
-    <h3>Hola, esta es una prueba de SES desde local</h3>
-    <p>Fecha: ${new Date().toLocaleString('es-CL')}</p>
-  `;
-
-  try {
-    const params = {
-      Source: process.env.SES_FROM,
-      Destination: { ToAddresses: to },
-      Message: {
-        Subject: { Charset: 'UTF-8', Data: subject },
-        Body: { Html: { Charset: 'UTF-8', Data: htmlBody } }
-      },
-      ReplyToAddresses: [process.env.SES_FROM]
-    };
-
-    const res = await ses.send(new SendEmailCommand(params));
-    console.log('✅ Correo enviado correctamente');
-    console.log('SES MessageId:', res.MessageId);
-  } catch (err) {
-    console.error('❌ Error al enviar correo:', err);
-  }
 }
 
-main();
+const region = process.env.AWS_REGION || 'us-west-2';
+const from   = process.env.SES_FROM;                     // Debe estar verificado en SES
+const to     = getList('SES_TEST_RECIPIENTS');           // En sandbox, estos también deben estar verificados
+
+if (!from) {
+  console.error('❌ Falta SES_FROM en .env');
+  process.exit(1);
+}
+if (!to.length) {
+  console.error('❌ Falta SES_TEST_RECIPIENTS en .env (separados por coma)');
+  process.exit(1);
+}
+
+const ses = new SESClient({ region });
+
+const params = {
+  Source: from,
+  Destination: { ToAddresses: to },                      // 👈 requerido
+  Message: {
+    Subject: { Data: 'Prueba SES', Charset: 'UTF-8' },
+    Body: {
+      Html: { Data: '<h1>Hola</h1><p>Prueba SES.</p>', Charset: 'UTF-8' },
+      // Text: { Data: 'Hola - Prueba SES.', Charset: 'UTF-8' } // opcional
+    }
+  },
+  // ReplyToAddresses: ['tu-reply@dominio.com'],          // opcional
+};
+
+console.log('→ Enviando', { region, from, to });
+try {
+  const out = await ses.send(new SendEmailCommand(params));
+  console.log('✅ OK MessageId:', out.MessageId);
+} catch (e) {
+  console.error('❌ Error SES:', e);
+  process.exit(1);
+}

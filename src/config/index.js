@@ -1,10 +1,17 @@
 // src/config/index.js
 import 'dotenv/config';
 
-function need(key, def) {
-  const v = process.env[key] ?? def;
-  if (v === undefined || v === null || v === '') {
+function need(key, val) {
+  if (val === undefined || val === null || String(val) === '') {
     throw new Error(`❌ Missing required env var: ${key}`);
+  }
+  return val;
+}
+
+function needEither(k1, k2, v1, v2) {
+  const v = v1 ?? v2;
+  if (v === undefined || v === null || String(v) === '') {
+    throw new Error(`❌ Missing required env var: ${k1} or ${k2}`);
   }
   return v;
 }
@@ -21,66 +28,48 @@ function list(key) {
 const dbSource = (process.env.DB_SOURCE || 'MSSQL').toUpperCase();
 const usingHana = dbSource === 'HANA';
 
-// 🎯 MSSQL: expone **ambos** nombres (server/database y host/db) para compatibilidad
-const mssql = (() => {
-  const server = process.env.MSSQL_SERVER || process.env.MSSQL_HOST;
-  const database = process.env.MSSQL_DB || process.env.MSSQL_DB;
-  const user = process.env.MSSQL_USER;
-  const password = process.env.MSSQL_PASSWORD || process.env.MSSQL_PASS;
-  const port = process.env.MSSQL_PORT ? Number(process.env.MSSQL_PORT) : 1433;
-
-  // Validaciones claras (si usas MSSQL)
-  if (dbSource === 'MSSQL') {
-    need('MSSQL_SERVER or MSSQL_HOST', server);
-    need('MSSQL_DB or MSSQL_DB', database);
-    need('MSSQL_USER', user);
-    need('MSSQL_PASSWORD or MSSQL_PASS', password);
-  }
-
-  return {
-    // “nuevo/tedious”
-    server,
-    database,
-    user,
-    password,
-    port,
-    options: {
-      encrypt: bool('MSSQL_ENCRYPT', 'true'),
-      trustServerCertificate: bool('MSSQL_TRUST_CERT', 'true'),
-      // instanceName: process.env.MSSQL_INSTANCE || undefined, // usa esto si manejas instancia nombrada SIN puerto
-    },
-    pool: {
-      max: process.env.MSSQL_POOL_MAX ? Number(process.env.MSSQL_POOL_MAX) : 10,
-      min: 0,
-      idleTimeoutMillis: 30000,
-    },
-    // “legado/antiguo” (por si algún módulo viejo lo espera)
-    host: server,
-    db: database,
-    pass: password,
-  };
-})();
-
-// HANA solo se valida si se usa
-const hana = {
-  host: usingHana ? need('HANA_HOST') : process.env.HANA_HOST,
-  port: Number(process.env.HANA_PORT ?? 30015),
-  user: usingHana ? need('HANA_USER') : process.env.HANA_USER,
-  pass: usingHana ? need('HANA_PASS') : process.env.HANA_PASS,
-  ssl: bool('HANA_SSL', 'false'),
-};
+// —— MSSQL ——
+const mssql_server   = process.env.MSSQL_SERVER || process.env.MSSQL_HOST;
+const mssql_database = needEither('MSSQL_DATABASE','MSSQL_DB', process.env.MSSQL_DATABASE, process.env.MSSQL_DB);
+const mssql_user     = need('MSSQL_USER', process.env.MSSQL_USER);
+const mssql_password = needEither('MSSQL_PASSWORD','MSSQL_PASS', process.env.MSSQL_PASSWORD, process.env.MSSQL_PASS);
+const mssql_port     = process.env.MSSQL_PORT ? Number(process.env.MSSQL_PORT) : 1433;
 
 export const cfg = {
   env: process.env.NODE_ENV ?? 'development',
   isProd: process.env.NODE_ENV === 'production',
   tz: process.env.TZ ?? 'America/Santiago',
 
-  dbSource, // 'MSSQL' o 'HANA'
-  mssql,
-  hana,
+  dbSource,
+
+  mssql: {
+    server: mssql_server,          // acepta SERVER u HOST
+    database: mssql_database,      // acepta DATABASE o DB
+    user: mssql_user,
+    password: mssql_password,      // acepta PASSWORD o PASS
+    port: mssql_port,
+    options: {
+      encrypt: bool('MSSQL_ENCRYPT', 'true'),
+      trustServerCertificate: bool('MSSQL_TRUST_CERT', 'true'),
+      // instanceName: process.env.MSSQL_INSTANCE || undefined, // si usas instancia nombrada
+    },
+    pool: {
+      max: process.env.MSSQL_POOL_MAX ? Number(process.env.MSSQL_POOL_MAX) : 10,
+      min: 0,
+      idleTimeoutMillis: 30000
+    }
+  },
+
+  hana: {
+    host: usingHana ? need('HANA_HOST', process.env.HANA_HOST) : process.env.HANA_HOST,
+    port: Number(process.env.HANA_PORT ?? 30015),
+    user: usingHana ? need('HANA_USER', process.env.HANA_USER) : process.env.HANA_USER,
+    pass: usingHana ? need('HANA_PASS', process.env.HANA_PASS) : process.env.HANA_PASS,
+    ssl: bool('HANA_SSL', 'false'),
+  },
 
   ses: {
-    region: need('AWS_REGION', 'us-east-1'),
+    region: need('AWS_REGION', process.env.AWS_REGION),
     from: process.env.SES_FROM || 'Cobranza Suragra <no-reply@suragra.com>',
     cc: list('SES_CC'),
     bcc: list('SES_BCC'),
@@ -90,4 +79,5 @@ export const cfg = {
   altTest: Number(process.env.ALT_TEST ?? 1),
   dryRun: bool('DRY_RUN', 'false'),
   fallbackRecipient: process.env.FALLBACK_RECIPIENT || null,
+
 };

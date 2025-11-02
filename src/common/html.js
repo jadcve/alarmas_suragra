@@ -9,19 +9,11 @@ export function header() {
   ].join('');
 }
 
-export const row = (cells=[]) => `<tr>${cells.map(td).join('')}</tr>`;
-
-export function table(titulo, rowsHtml=[], footerOrMessage='') {
-  let h = `<p><br><b>${titulo}</b></p><table width='100%' cellspacing='0' cellpadding='0'>`;
-  h += header();
-  h += (Array.isArray(rowsHtml) ? rowsHtml.join('') : rowsHtml) || '';
-  if (Array.isArray(rowsHtml) && rowsHtml.length) {
-    h += `<tr><td width='79'>&nbsp;</td><td width='80'>&nbsp;</td><td width='80'>&nbsp;</td><td width='70'><b>Total:</b></td><td width='200'><b>${footerOrMessage}</b></td></tr>`;
-  }
-  h += '</table>';
-  if (!Array.isArray(rowsHtml) || rowsHtml.length === 0) {
-    h += `<p>${footerOrMessage}</p>`;
-  }
-  h += '<p><br></p>';
-  return h;
-}
+export const row = cells => `<tr>${cells.map(c => `<td style="padding:6px 8px;border-bottom:1px solid #eee;">${c ?? ''}</td>`).join('')}</tr>`;
+export const table = (title, rows, footer='') => `
+  <div style="margin:16px 0;">
+    <h3 style="margin:0 0 8px 0;">${title}</h3>
+    ${rows?.length
+      ? `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">${rows.join('')}</table>${footer ? `<p style="font-weight:bold;margin-top:8px;">${footer}</p>` : ''}`
+      : `<p style="color:#666;">${footer || 'Sin registros'}</p>`}
+  </div>`;
