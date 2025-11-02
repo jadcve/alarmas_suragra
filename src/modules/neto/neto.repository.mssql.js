@@ -1,7 +1,6 @@
-// neto.repository.mssql.js  (versión consistente)
-
+// src/modules/neto/neto.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../logging/logger.js';
+import { logger } from '../../logging/logger.js';
 
 // Campañas (stream → yield)
 export async function* getCampanias(pool) {
@@ -21,21 +20,23 @@ export async function* getCampanias(pool) {
     for (const row of bag) yield row;
 
   } catch (err) {
-    logger.error(err, 'Error en getCampanias');
+    logger.error({ err }, 'Error en getCampanias');
     throw err;
   }
 }
 
+// Template + asunto (elige NMOR si existe; si no, usa un fallback seguro)
 export async function getTemplate(pool) {
   const r = await pool.request().query('SELECT * FROM TA_SGRA_ALRTA_FLUJO_CNTBL');
-  // más robusto: toma la fila de NMOR si existe; si no, usa [1]
   const filaNMOR = r.recordset?.find(x => String(x.COD_CNP).trim() === 'NMOR');
-  const row = filaNMOR ?? r.recordset?.[1] ?? r.recordset?.[0];
-  return { template: row?.GLS_DET_ALT ?? '', subject: row?.GLS_ALT ?? 'Aviso' };
+  const row = filaNMOR ?? r.recordset?.[1] ?? r.recordset?.[0] ?? {};
+  return { template: row.GLS_DET_ALT ?? '', subject: row.GLS_ALT ?? 'Aviso' };
 }
 
+// Clientes con NETO pendiente (stream)
 export async function* getClientes(pool) {
-  const req = pool.request(); req.stream = true;
+  const req = pool.request();
+  req.stream = true;
   req.execute('SP_SGR_CNA_CLT_ALT_AMZ_NETP');
 
   const bag = [];
@@ -48,21 +49,27 @@ export async function* getClientes(pool) {
   for (const row of bag) yield row;
 }
 
+// Contactos por cliente
 export async function getContactos(pool, codIdtSap) {
   const req = pool.request();
   req.input('COD_IDT_SAP', sql.VarChar, codIdtSap);
   req.output('CAN_CTC', sql.Int);
   const rs = await req.execute('SP_SGR_CNA_CTC_CLT_SAP');
-  return { contactos: rs.recordset, count: req.parameters.CAN_CTC.value ?? rs.recordset?.length ?? 0 };
+  return {
+    contactos: rs.recordset ?? [],
+    count: req.parameters.CAN_CTC.value ?? rs.recordset?.length ?? 0
+  };
 }
 
+// Detalle de documentos (recordsets)
 export async function getRegistros(pool, codIdtSap) {
   const rs = await pool.request()
     .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
     .execute('SP_SGR_CNA_STC_CMR_NTO_PND');
-  return rs.recordsets;
+  return rs.recordsets ?? [];
 }
 
+// Bitácora de envío
 export async function insertLog(pool, { codIdtSap, codCtc, codigo, error }) {
   try {
     await pool.request()
@@ -73,7 +80,7 @@ export async function insertLog(pool, { codIdtSap, codCtc, codigo, error }) {
       .input('GLS_ERR', sql.VarChar, String(error ?? ''))
       .execute('SP_SGR_INS_TRZ_ALT');
   } catch (e) {
-    // no rompas el job por fallar la bitácora
+    // no romper el job por fallar la bitácora
     logger.warn({ e, codIdtSap, codCtc }, 'Fallo insertLog');
   }
 }
