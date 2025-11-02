@@ -24,7 +24,7 @@ const usingHana = dbSource === 'HANA';
 // 🎯 MSSQL: expone **ambos** nombres (server/database y host/db) para compatibilidad
 const mssql = (() => {
   const server = process.env.MSSQL_SERVER || process.env.MSSQL_HOST;
-  const database = process.env.MSSQL_DATABASE || process.env.MSSQL_DB;
+  const database = process.env.MSSQL_DB || process.env.MSSQL_DB;
   const user = process.env.MSSQL_USER;
   const password = process.env.MSSQL_PASSWORD || process.env.MSSQL_PASS;
   const port = process.env.MSSQL_PORT ? Number(process.env.MSSQL_PORT) : 1433;
@@ -32,7 +32,7 @@ const mssql = (() => {
   // Validaciones claras (si usas MSSQL)
   if (dbSource === 'MSSQL') {
     need('MSSQL_SERVER or MSSQL_HOST', server);
-    need('MSSQL_DATABASE or MSSQL_DB', database);
+    need('MSSQL_DB or MSSQL_DB', database);
     need('MSSQL_USER', user);
     need('MSSQL_PASSWORD or MSSQL_PASS', password);
   }
