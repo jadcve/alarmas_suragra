@@ -8,31 +8,26 @@ Su propósito principal es generar notificaciones automáticas (por correo) sobr
 ## 🧱 Arquitectura General
 
 ```
-+-------------------------+
-| SAP HANA / SQL Server   |
-| (Datos origen)          |
-+-----------+-------------+
-            |
-            v
-+-------------------------+
-| Node.js (Alarmas Suragra)
-|  ├─ src/
-|  │  ├─ modules/
-|  │  │  ├─ neto/
-|  │  │  └─ iva/
-|  │  ├─ adapters/
-|  │  │  └─ ses.adapter.js   ← Envío de correos AWS SES
-|  │  ├─ config/
-|  │  │  └─ index.js         ← Variables de entorno y conexión
-|  │  └─ logging/
-|  └─ utils/
-+-------------------------+
-            |
-            v
-+-------------------------+
++-----------------------------+
+| SAP HANA / SQL Server |
+| (Datos de negocio y SPs) |
++-------------+---------------+
+|
+v
++-----------------------------+
+| Node.js (Alarmas Suragra) |
+| ├─ Lógica modular (NETO/IVA)|
+| ├─ Render HTML + placeholders|
+| ├─ Conexión MSSQL/HANA |
+| ├─ Envío de correo SES |
+| └─ Logging estructurado |
++-------------+---------------+
+|
+v
++-----------------------------+
 | AWS Simple Email Service |
-| (notificaciones automáticas)
-+-------------------------+
+| (Correos transaccionales) |
++-----------------------------+
 ```
 
 ---
@@ -41,12 +36,13 @@ Su propósito principal es generar notificaciones automáticas (por correo) sobr
 
 | Componente | Tecnología |
 |-------------|-------------|
-| Backend principal | Node.js 20.x |
+| Backend | Node.js 20.x (ES Modules) |
 | Base de datos | SQL Server 2019 / SAP HANA |
-| Correo transaccional | AWS SES (SDK v3) |
+| Envío de correos | AWS SES (SDK v3) |
+| Logging | Pino / Console JSON |
+| Configuración | `.env` + `src/config/index.js` |
+| Templates | HTML dinámicos con placeholders (`<<CLIENTE>>`, `<<TOTAL>>`, `<<FACTURAS>>`) |
 | Entorno | AWS EC2 / Docker |
-| Logging | Winston / Console |
-| Configuración | Variables `.env` manejadas desde `src/config/index.js` |
 
 ---
 
@@ -54,39 +50,49 @@ Su propósito principal es generar notificaciones automáticas (por correo) sobr
 
 ```
 src/
-├── adapters/
-│   └── ses.adapter.js           # Integración con AWS SES
+├── assets/
+│ └── logo-suragra.png # Logo embebido en correos
+├── common/
+│ └── mailer.js # Cliente AWS SES + lógica inline CID
 ├── config/
-│   └── index.js                 # Configuración y lectura de entorno
+│ └── index.js # Config global (.env, rutas, logoPath, etc.)
+├── db/
+│ ├── factory.js # Selección MSSQL/HANA
+│ ├── mssql.js # Conexión SQL Server
+│ └── hana.js # Conexión SAP HANA
 ├── logging/
-│   └── logger.js                # Logger centralizado
+│ └── logger.js # Logger Pino estructurado
 ├── modules/
-│   ├── neto/
-│   │   ├── neto.service.js      # Lógica principal de envío de alertas NETO
-│   │   ├── neto.repository.mssql.js
-│   │   ├── neto.repository.js
-│   │   └── neto.template.js
-│   └── iva/                     # Futuro módulo de alertas IVA
-├── tools/
-│   └── export-templates.js
-└── utils/
-    └── index.js
+│ └── neto/
+│ ├── neto.service.js # Orquestación de envío NETO
+│ ├── neto.repository.mssql.js
+│ ├── neto.job.js # Ejecutable del job
+│ └── templates/
+│ ├── NMOR.html
+│ ├── IMOR.html
+│ └── RFAC.html
+└── scripts/
+└── send-test.js # Prueba rápida de correo SES
 ```
+
+---
+
 
 ---
 
 ## 🔐 Variables de Entorno (.env)
 
-Ejemplo de configuración local:
+Ejemplo:
 
 ```bash
 # Base de datos MSSQL
-MSSQL_HOST=34.227.19.226
+MSSQL_HOST=localhost
 MSSQL_DB=bd_sgra
 MSSQL_USER=usr_cna2
 MSSQL_PASS=usr_cna2
+MSSQL_PORT=1433
 
-# SAP HANA (para futuras integraciones)
+# SAP HANA (solo si DB_SOURCE=HANA)
 HANA_HOST=hana.cluster.company.com
 HANA_PORT=39015
 HANA_USER=HDB_USER
@@ -98,12 +104,17 @@ AWS_REGION=us-west-2
 AWS_ACCESS_KEY_ID=AKIAxxxxxxxxxxxx
 AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 SES_FROM="Cobranza Suragra <cobranza@suragra.com>"
+SES_CC=aracelli@suragra.com,marcoantonio@suragra.com,cinthia@suragra.com,priscilla@suragra.com
+SES_TEST_RECIPIENTS=jadcve@gmail.com
+FALLBACK_RECIPIENT=jadcve@gmail.com
 
 # Configuración general
 DB_SOURCE=MSSQL
 TZ=America/Santiago
-TEST_RECIPIENTS=jxxxx@mail.com
-DRY_RUN=false
+ALT_TEST=0           # 0 = Modo test (solo correos de prueba)
+DRY_RUN=false        # true = No envía correos reales
+LOGO_PATH=src/assets/logo-suragra.png
+
 ```
 
 ---
