@@ -125,7 +125,7 @@ export async function runNeto() {
       
       const bloqueUSD = html.table(
         'Facturación Moneda Extranjera',
-        [html.header(), ...usd.rows],
+        [html.headerNeto(), ...usd.rows],
         usd.rows.length
           ? `Total: USD ${formatNumber(usd.total, { fractionDigits: 2, symbols: { decimal: ',', grouping: '.' } })}`
           : 'No existen documentos con NETO pendiente asociados a facturas con moneda extranjera'
@@ -133,7 +133,7 @@ export async function runNeto() {
 
       const bloqueCLP = html.table(
         'Facturación Moneda Local',
-        [html.header(), ...clp.rows],
+        [html.headerNeto(), ...clp.rows],
         clp.rows.length
           ? `Total: CLP ${formatNumber(clp.total, { fractionDigits: 0, symbols: { decimal: '.', grouping: '.' } })}`
           : 'No existen documentos con NETO pendiente asociados a facturas con moneda local'
