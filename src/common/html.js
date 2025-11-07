@@ -37,6 +37,7 @@ export function injectPlaceholders(html, map) {
 export const td = (v) =>
   `<td><span style="font-size:11px"><span style="font-family:tahoma,geneva,sans-serif">${v ?? ''}</span></span></td>`;
 
+/** Encabezado  para Neto  */
 export function headerNeto() {
   return `
   <tr style="background-color:#f2f2f2;font-weight:bold">
@@ -50,7 +51,7 @@ export function headerNeto() {
   </tr>`;
 }
 
-/** Encabezado correcto para IVA (5 columnas) */
+/** Encabezado  para IVA  */
 export function headerIVA() {
   return `
   <tr style="background-color:#f2f2f2;font-weight:bold">
@@ -61,6 +62,19 @@ export function headerIVA() {
     ${td('Días de Mora')}
   </tr>`;
 }
+
+
+/** Encabezado para Resumen de Facturación  */
+export function headerRFAC() {
+  return `
+  <tr style="background:#f2f2f2;font-weight:bold;">
+    ${td('Documento')}
+    ${td('Fecha Emisión')}
+    ${td('IVA')}
+    ${td('NETO')}
+  </tr>`;
+}
+
 
 export const row = (cells) =>
   `<tr>${cells.map((c) => `<td style="padding:6px 8px;border-bottom:1px solid #eee">${c ?? ''}</td>`).join('')}</tr>`;
