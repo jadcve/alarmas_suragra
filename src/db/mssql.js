@@ -13,7 +13,8 @@ export function createMssqlPool(cfg) {
       port: cfg.port ?? 1433,
       options: {
         encrypt: true,
-        trustServerCertificate: true
+        trustServerCertificate: true,
+        requestTimeout: 300000,  
       },
       pool: { max: 10, min: 0, idleTimeoutMillis: 30000 }
     });
