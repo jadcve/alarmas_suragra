@@ -4,10 +4,12 @@ import { getDb } from './db/factory.js';
 import { sendEmail } from './adapters/ses.adapter.js';
 import { lastDayPrevMonthISO } from './utils/date.js';
 
-import { runIva } from './modules/iva/iva.service.js';
+import { runIVA } from './modules/iva/iva.service.js';
+
+
 // importa cuando estén listos:
 import { runNeto } from './modules/neto/neto.service.js';
-import { runResumen } from './modules/resumen/resumen.service.js';
+import { runRESUMEN as runResumen } from './modules/resumen/resumen.service.js';
 
 import cron from 'node-cron';
 
@@ -24,7 +26,7 @@ async function executeJob(name, fn) {
 
 // IVA — mensual (día 15 a las 08:00 CLT)
 cron.schedule('0 8 15 * *', async () => {
-  await executeJob('IVA', (db)=> runIva({ db, fechaCorte: lastDayPrevMonthISO(), recipients: cfg.testRecipients }));
+  await executeJob('IVA', (db)=> runIVA({ db, fechaCorte: lastDayPrevMonthISO(), recipients: cfg.testRecipients }));
 }, { timezone: cfg.tz });
 
 // RESUMEN — mensual (día 4 a las 08:00 CLT)
@@ -38,8 +40,8 @@ cron.schedule('0 7 * * 5', async () => {
   await executeJob('NETO', (db)=> runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }));
 }, { timezone: cfg.tz });
 
-// HEARTBEAT — diario (9:00 AM CLT) - Notificación de sistema activo
-cron.schedule('0 9 * * *', async () => {
+// HEARTBEAT — diario (23:55 CLT - PRUEBA) - Notificación de sistema activo
+cron.schedule('55 23 * * *', async () => {
   try {
     const now = new Date();
     const dateStr = now.toLocaleString('es-CL', { timeZone: cfg.tz });
