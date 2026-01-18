@@ -1,5 +1,5 @@
 import { getPool, closePool } from '../db/pool.js';
-import { getClientesNetoList } from '../modules/neto/neto.repository.mssql.js';
+import { getClientesNetoList } from '../modules/suragra/neto/neto.repository.mssql.js';
 
 async function main() {
   const pool = await getPool();

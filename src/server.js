@@ -6,9 +6,10 @@ import { getDb } from './db/factory.js';
 import { sendEmail } from './adapters/ses.adapter.js';
 import { lastDayPrevMonthISO } from './utils/date.js';
 
-import { runIVA } from './modules/iva/iva.service.js';
-import { runNeto } from './modules/neto/neto.service.js';
-import { runRFAC } from './modules/resumen/resumen.service.js';
+// Módulos de Suragra
+import { runIVA } from './modules/suragra/iva/iva.service.js';
+import { runNeto } from './modules/suragra/neto/neto.service.js';
+import { runRFAC } from './modules/suragra/resumen/resumen.service.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
