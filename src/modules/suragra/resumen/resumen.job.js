@@ -1,8 +1,8 @@
-// src/modules/resumen/resumen.job.js
+// src/modules/suragra/resumen/resumen.job.js
 import 'dotenv/config';
-import { cfg } from '../../config/index.js';
+import { cfg } from '../../../config/index.js';
 import { runRFAC } from './resumen.service.js';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 (async () => {
   try {

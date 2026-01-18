@@ -1,6 +1,6 @@
-// src/modules/resumen/resumen.repository.mssql.js
+// src/modules/suragra/resumen/resumen.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 // Campañas: reusa el SP transversal y filtra RFAC en el service
 export async function* getCampanias(pool) {

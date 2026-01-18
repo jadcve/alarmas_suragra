@@ -1,6 +1,6 @@
-// src/modules/neto/neto.repository.mssql.js
+// src/modules/suragra/neto/neto.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 // Campañas (stream → yield)
 export async function* getCampanias(pool) {

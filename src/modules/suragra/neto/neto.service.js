@@ -1,5 +1,5 @@
-// src/modules/neto/neto.service.js
-import { getDb } from '../../db/factory.js';
+// src/modules/suragra/neto/neto.service.js
+import { getDb } from '../../../db/factory.js';
 import {
   getTemplate,
   getCampanias,
@@ -8,20 +8,20 @@ import {
   getRegistros,
   insertLog
 } from './neto.repository.mssql.js';
-import { logger } from '../../logging/logger.js';
-import { send as sendMail, buildRecipients } from '../../common/mailer.js';
+import { logger } from '../../../logging/logger.js';
+import { send as sendMail, buildRecipients } from '../../../common/mailer.js';
 
 import moment from 'moment';
 import 'moment/locale/es.js';
 import s from 'underscore.string';
 import formatNumber from 'simple-format-number';
-import * as html from '../../common/html.js';
-import { replaceTokenAll } from '../../common/tokens.js';
+import * as html from '../../../common/html.js';
+import { replaceTokenAll } from '../../../common/tokens.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const logoPath = path.join(__dirname, '../../assets/logo-suragra.png');
+const logoPath = path.join(__dirname, '../../../assets/logo-suragra.png');
 
 // helper para normalizar montos de BD
 const asNum = (v) => {

@@ -1,8 +1,8 @@
-// src/modules/iva/iva.job.js
+// src/modules/suragra/iva/iva.job.js
 import 'dotenv/config';
-import { cfg } from '../../config/index.js';
+import { cfg } from '../../../config/index.js';
 import { runIVA } from './iva.service.js';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 process.on('unhandledRejection', (reason) => {
   logger.error({ err: reason }, 'UnhandledRejection en Job IVA');

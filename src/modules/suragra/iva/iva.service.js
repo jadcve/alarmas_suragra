@@ -1,11 +1,11 @@
-// src/modules/iva/iva.service.js
+// src/modules/suragra/iva/iva.service.js
 import moment from 'moment';
 import 'moment/locale/es.js';
 
-import { getDb } from '../../db/factory.js';
-import { logger } from '../../logging/logger.js';
-import { buildRecipients, send as sendMail } from '../../common/mailer.js';
-import { table, row, headerIVA, fmtUSD, fmtCLP, injectPlaceholders } from '../../common/html.js';
+import { getDb } from '../../../db/factory.js';
+import { logger } from '../../../logging/logger.js';
+import { buildRecipients, send as sendMail } from '../../../common/mailer.js';
+import { table, row, headerIVA, fmtUSD, fmtCLP, injectPlaceholders } from '../../../common/html.js';
 
 
 

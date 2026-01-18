@@ -1,11 +1,11 @@
-// src/modules/resumen/resumen.service.js
+// src/modules/suragra/resumen/resumen.service.js
 import moment from 'moment';
 import 'moment/locale/es.js';
 
-import { getDb } from '../../db/factory.js';
-import { logger } from '../../logging/logger.js';
-import { buildRecipients, send as sendMail } from '../../common/mailer.js';
-import { table, row, headerRFAC, fmtUSD, fmtCLP, injectPlaceholders } from '../../common/html.js';
+import { getDb } from '../../../db/factory.js';
+import { logger } from '../../../logging/logger.js';
+import { buildRecipients, send as sendMail } from '../../../common/mailer.js';
+import { table, row, headerRFAC, fmtUSD, fmtCLP, injectPlaceholders } from '../../../common/html.js';
 
 import {
   getTemplate,
