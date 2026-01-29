@@ -4,12 +4,10 @@ import { getDb } from './db/factory.js';
 import { sendEmail } from './adapters/ses.adapter.js';
 import { lastDayPrevMonthISO } from './utils/date.js';
 
-import { runIVA } from './modules/iva/iva.service.js';
-
-
-// importa cuando estén listos:
-import { runNeto } from './modules/neto/neto.service.js';
-import { runRESUMEN as runResumen } from './modules/resumen/resumen.service.js';
+// Módulos de Suragra
+import { runIVA } from './modules/suragra/iva/iva.service.js';
+import { runNeto } from './modules/suragra/neto/neto.service.js';
+import { runRFAC as runResumen } from './modules/suragra/resumen/resumen.service.js';
 
 import cron from 'node-cron';
 
@@ -108,7 +106,7 @@ cron.schedule('55 23 * * *', async () => {
 // Al final de src/index.js, agrega un modo "one-shot" por CLI:
 if (process.argv.includes('--run-neto')) {
   const db = getDb();                         // devolverá pool MSSQL por DB_SOURCE
-  const { runNeto } = await import('./modules/neto/neto.service.js');
+  const { runNeto } = await import('./modules/suragra/neto/neto.service.js');
   const hoyISO = new Date().toISOString().slice(0,10);
   await (async () => {
     try { await runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }); }

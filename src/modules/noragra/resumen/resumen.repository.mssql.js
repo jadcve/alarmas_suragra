@@ -1,13 +1,20 @@
-// src/modules/resumen/resumen.repository.mssql.js
+// src/modules/noragra/resumen/resumen.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
+
+// SPs de Noragra con prefijo _NOR
+const PROC_CAMPANIAS = 'SP_SGR_CNA_ALT_CTB_AMZ_NOR';
+const PROC_CLIENTES  = 'SP_SGR_CNA_CLT_ALT_AMZ_NOR';
+const PROC_CONTACTOS = 'SP_SGR_CNA_CTC_CLT_SAP_NOR';
+const PROC_DETALLE   = 'SP_SGR_CNA_STC_CMR_RSM_FAC_NOR';
+const COD_CNP        = 'RFAC';
 
 // Campañas: reusa el SP transversal y filtra RFAC en el service
 export async function* getCampanias(pool) {
   try {
     const req = pool.request();
     req.stream = true;
-    req.execute('SP_SGR_CNA_ALT_CTB_AMZ');
+    req.execute(PROC_CAMPANIAS);
 
     const bag = [];
     await new Promise((resolve, reject) => {
@@ -18,7 +25,7 @@ export async function* getCampanias(pool) {
 
     for (const r of bag) yield r;
   } catch (err) {
-    logger.error({ err }, 'RFAC:getCampanias');
+    logger.error({ err }, 'RFAC NORAGRA:getCampanias');
     throw err;
   }
 }
@@ -27,7 +34,7 @@ export async function* getCampanias(pool) {
 // si no existiera, usa un fallback seguro.
 export async function getTemplate(pool) {
   const rs = await pool.request().query('SELECT * FROM TA_SGRA_ALRTA_FLUJO_CNTBL');
-  const filaRFAC = rs.recordset?.find(x => String(x.COD_CNP).trim() === 'RFAC');
+  const filaRFAC = rs.recordset?.find(x => String(x.COD_CNP).trim() === COD_CNP);
   const row = filaRFAC ?? rs.recordset?.[0] ?? {};
   return {
     template: row.GLS_DET_ALT ?? '',
@@ -39,7 +46,7 @@ export async function getTemplate(pool) {
 export async function* getClientes(pool) {
   const req = pool.request();
   req.stream = true;
-  req.execute('SP_SGR_CNA_CLT_ALT_AMZ');
+  req.execute(PROC_CLIENTES);
 
   const bag = [];
   await new Promise((resolve, reject) => {
@@ -56,7 +63,7 @@ export async function getContactos(pool, codIdtSap) {
   const rs = await pool.request()
     .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
     .output('CAN_CTC', sql.Int)
-    .execute('SP_SGR_CNA_CTC_CLT_SAP');
+    .execute(PROC_CONTACTOS);
 
   const contactos = (rs.recordset ?? []).map(x => ({
     ...x,
@@ -70,9 +77,8 @@ export async function getContactos(pool, codIdtSap) {
 export async function getRegistros(pool, codIdtSap) {
   const rs = await pool.request()
     .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
-    .execute('SP_SGR_CNA_STC_CMR_RSM_FAC');
+    .execute(PROC_DETALLE);
 
-  // igual que los otros módulos: devolvemos todos los recordsets
   return rs.recordsets ?? [];
 }
 
@@ -84,10 +90,10 @@ export async function insertLog(pool, { codIdtSap, codCtc, codigo, error }) {
       .input('COD_IDT_SAP', sql.VarChar, String(codIdtSap ?? ''))
       .input('COD_IDT_CTC', sql.Int, Number.isFinite(ctc) ? ctc : 0)
       .input('FLG_EML_ENV', sql.Int, Number(codigo ?? 0))
-      .input('COD_CNP', sql.VarChar, 'RFAC')
+      .input('COD_CNP', sql.VarChar, COD_CNP)
       .input('GLS_ERR', sql.VarChar, String(error ?? ''))
-      .execute('SP_SGR_INS_TRZ_ALT');
+      .execute('SP_SGR_INS_TRZ_ALT_NOR');
   } catch (e) {
-    logger.warn({ e, codIdtSap, codCtc }, 'RFAC:insertLog warn');
+    logger.warn({ e, codIdtSap, codCtc }, 'RFAC NORAGRA:insertLog warn');
   }
 }

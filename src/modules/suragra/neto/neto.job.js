@@ -1,8 +1,8 @@
-// src/modules/neto/neto.job.js
+// src/modules/suragra/neto/neto.job.js
 import 'dotenv/config';
-import { cfg } from '../../config/index.js';
+import { cfg } from '../../../config/index.js';
 import { runNeto } from './neto.service.js';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 (async () => {
   try {

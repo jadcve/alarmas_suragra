@@ -1,11 +1,11 @@
-// src/modules/iva/iva.job.js
+// src/modules/noragra/iva/iva.job.js
 import 'dotenv/config';
-import { cfg } from '../../config/index.js';
+import { cfg } from '../../../config/index.js';
 import { runIVA } from './iva.service.js';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 process.on('unhandledRejection', (reason) => {
-  logger.error({ err: reason }, 'UnhandledRejection en Job IVA');
+  logger.error({ err: reason }, 'UnhandledRejection en Job IVA NORAGRA');
   process.exitCode = 1;
 });
 
@@ -18,12 +18,12 @@ process.on('unhandledRejection', (reason) => {
         user: cfg.mssql.user,
         port: cfg.mssql.port
       }
-    }, 'CFG MSSQL efectiva');
+    }, 'CFG MSSQL efectiva (NORAGRA IVA)');
 
     await runIVA();
-    logger.info('Job IVA finalizado.');
+    logger.info('Job IVA NORAGRA finalizado.');
   } catch (err) {
-    logger.error({ err }, 'Job IVA falló');
+    logger.error({ err }, 'Job IVA NORAGRA falló');
     process.exitCode = 1;
   }
 })();

@@ -1,8 +1,8 @@
-// src/modules/resumen/resumen.job.js
+// src/modules/noragra/resumen/resumen.job.js
 import 'dotenv/config';
-import { cfg } from '../../config/index.js';
+import { cfg } from '../../../config/index.js';
 import { runRFAC } from './resumen.service.js';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
 (async () => {
   try {
@@ -13,12 +13,12 @@ import { logger } from '../../logging/logger.js';
         user: cfg.mssql.user,
         port: cfg.mssql.port
       }
-    }, 'CFG MSSQL efectiva');
+    }, 'CFG MSSQL efectiva (NORAGRA RESUMEN)');
 
     await runRFAC();
-    logger.info('Job RFAC finalizado.');
+    logger.info('Job RFAC NORAGRA finalizado.');
   } catch (err) {
-    logger.error({ err }, 'Job RFAC falló');
+    logger.error({ err }, 'Job RFAC NORAGRA falló');
     process.exitCode = 1;
   }
 })();

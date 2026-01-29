@@ -1,8 +1,8 @@
-// src/modules/neto/neto.repository.mssql.js
+// src/modules/suragra/resumen/resumen.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../../logging/logger.js';
+import { logger } from '../../../logging/logger.js';
 
-// Campañas (stream → yield)
+// Campañas: reusa el SP transversal y filtra RFAC en el service
 export async function* getCampanias(pool) {
   try {
     const req = pool.request();
@@ -10,47 +10,48 @@ export async function* getCampanias(pool) {
     req.execute('SP_SGR_CNA_ALT_CTB_AMZ');
 
     const bag = [];
-    const iter = new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       req.on('row', row => bag.push(row));
       req.on('error', reject);
       req.on('done', resolve);
     });
 
-    await iter;
-    for (const row of bag) yield row;
-
+    for (const r of bag) yield r;
   } catch (err) {
-    logger.error({ err }, 'Error en getCampanias');
+    logger.error({ err }, 'RFAC:getCampanias');
     throw err;
   }
 }
 
-// Template + asunto (elige NMOR si existe; si no, usa un fallback seguro)
+// Toma template/asunto de la tabla y selecciona RFAC;
+// si no existiera, usa un fallback seguro.
 export async function getTemplate(pool) {
-  const r = await pool.request().query('SELECT * FROM TA_SGRA_ALRTA_FLUJO_CNTBL');
-  const filaNMOR = r.recordset?.find(x => String(x.COD_CNP).trim() === 'NMOR');
-  const row = filaNMOR ?? r.recordset?.[1] ?? r.recordset?.[0] ?? {};
-  return { template: row.GLS_DET_ALT ?? '', subject: row.GLS_ALT ?? 'Aviso' };
+  const rs = await pool.request().query('SELECT * FROM TA_SGRA_ALRTA_FLUJO_CNTBL');
+  const filaRFAC = rs.recordset?.find(x => String(x.COD_CNP).trim() === 'RFAC');
+  const row = filaRFAC ?? rs.recordset?.[0] ?? {};
+  return {
+    template: row.GLS_DET_ALT ?? '',
+    subject: row.GLS_ALT ?? 'Resumen de Facturación'
+  };
 }
 
-// Clientes con NETO pendiente (stream)
+// Clientes para RFAC (mismo universo que NETO/IVA)
 export async function* getClientes(pool) {
   const req = pool.request();
   req.stream = true;
-  req.execute('SP_SGR_CNA_CLT_ALT_AMZ_NETP');
+  req.execute('SP_SGR_CNA_CLT_ALT_AMZ');
 
   const bag = [];
-  const iter = new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     req.on('row', row => bag.push(row));
     req.on('error', reject);
     req.on('done', resolve);
   });
-  await iter;
-  for (const row of bag) yield row;
+
+  for (const r of bag) yield r;
 }
 
-// Contactos por cliente
-// src/modules/neto/neto.repository.mssql.js
+// Contactos de cliente
 export async function getContactos(pool, codIdtSap) {
   const rs = await pool.request()
     .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
@@ -59,37 +60,34 @@ export async function getContactos(pool, codIdtSap) {
 
   const contactos = (rs.recordset ?? []).map(x => ({
     ...x,
-    COD_CTC: x.COD_CTC ?? x.COD_IDT_CTC ?? 0, // 👈 siempre trae COD_CTC
+    COD_CTC: x.COD_CTC ?? x.COD_IDT_CTC ?? 0,
   }));
   const count = rs.output?.CAN_CTC ?? contactos.length;
   return { contactos, count };
 }
 
-
-// Detalle de documentos (recordsets)
+// Recordsets para Resumen de Facturación
 export async function getRegistros(pool, codIdtSap) {
   const rs = await pool.request()
     .input('COD_IDT_SAP', sql.VarChar, codIdtSap)
-    .execute('SP_SGR_CNA_STC_CMR_NTO_PND');
+    .execute('SP_SGR_CNA_STC_CMR_RSM_FAC');
+
+  // igual que los otros módulos: devolvemos todos los recordsets
   return rs.recordsets ?? [];
 }
 
-// src/modules/neto/neto.repository.mssql.js
+// Trazas
 export async function insertLog(pool, { codIdtSap, codCtc, codigo, error }) {
   try {
     const ctc = (codCtc === null || codCtc === undefined || codCtc === '' ? 0 : Number(codCtc));
     await pool.request()
       .input('COD_IDT_SAP', sql.VarChar, String(codIdtSap ?? ''))
-      .input('COD_IDT_CTC', sql.Int, isNaN(ctc) ? 0 : ctc)       // 👈 INT y con fallback 0
+      .input('COD_IDT_CTC', sql.Int, Number.isFinite(ctc) ? ctc : 0)
       .input('FLG_EML_ENV', sql.Int, Number(codigo ?? 0))
-      .input('COD_CNP', sql.VarChar, 'NMOR')
+      .input('COD_CNP', sql.VarChar, 'RFAC')
       .input('GLS_ERR', sql.VarChar, String(error ?? ''))
       .execute('SP_SGR_INS_TRZ_ALT');
   } catch (e) {
-    logger.warn({ e, codIdtSap, codCtc }, 'Fallo insertLog');
+    logger.warn({ e, codIdtSap, codCtc }, 'RFAC:insertLog warn');
   }
 }
-
-
-
-

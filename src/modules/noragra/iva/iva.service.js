@@ -1,13 +1,11 @@
-// src/modules/iva/iva.service.js
+// src/modules/noragra/iva/iva.service.js
 import moment from 'moment';
 import 'moment/locale/es.js';
 
-import { getDb } from '../../db/factory.js';
-import { logger } from '../../logging/logger.js';
-import { buildRecipients, send as sendMail } from '../../common/mailer.js';
-import { table, row, headerIVA, fmtUSD, fmtCLP, injectPlaceholders } from '../../common/html.js';
-
-
+import { getDb } from '../../../db/factory.js';
+import { logger } from '../../../logging/logger.js';
+import { buildRecipients, send as sendMail } from '../../../common/mailer.js';
+import { table, row, headerIVA, fmtUSD, fmtCLP, injectPlaceholders } from '../../../common/html.js';
 
 import {
   getTemplate,
@@ -47,7 +45,7 @@ const fmtDate = (d) => {
     const m = moment(s, 'DD/MM/YYYY', true);
     return m.isValid() ? m.format('DD/MM/YYYY') : '';
   }
-  // Último intento “a lo que caiga”
+  // Último intento "a lo que caiga"
   const m = moment(s);
   return m.isValid() ? m.format('DD/MM/YYYY') : s;
 };
@@ -152,7 +150,7 @@ export async function runIVA() {
   if (!pool?.request) throw new TypeError('DB pool inválido');
 
   const { template, subject } = await getTemplate(pool);
-  logger.info({ subject }, 'Template IMOR cargado');
+  logger.info({ subject }, 'Template IMOR cargado (NORAGRA)');
 
   // Verifica campaña IMOR
   let hayIMOR = false;
@@ -163,7 +161,7 @@ export async function runIVA() {
     }
   }
   if (!hayIMOR) {
-    logger.warn('No hay campaña IMOR — módulo IVA termina.');
+    logger.warn('No hay campaña IMOR — módulo IVA NORAGRA termina.');
     return;
   }
 
@@ -198,7 +196,6 @@ export async function runIVA() {
         FACTURAS: htmlSecciones
       });
 
-
       const emailCtc = String(contactos[0]?.GLS_EML ?? '').trim();
       if (!emailCtc || emailCtc.toUpperCase() === 'NO DEFINIDO') {
         await insertLog(pool, {
@@ -211,8 +208,8 @@ export async function runIVA() {
       }
 
       const to = buildRecipients(emailCtc);
-      logger.info({ to, codIdtSap }, 'Enviando IMOR');
-      await sendMail({ subject: `${subject} SURAGRA`, htmlBody: finalHtml, to });
+      logger.info({ to, codIdtSap }, 'Enviando IMOR (NORAGRA)');
+      await sendMail({ subject: `${subject} NORAGRA`, htmlBody: finalHtml, to });
 
       await insertLog(pool, {
         codIdtSap,
@@ -221,7 +218,7 @@ export async function runIVA() {
         error: 'EJECUTADO EXITOSAMENTE',
       });
     } catch (err) {
-      logger.error({ err, cliente: cli }, 'Error procesando cliente IMOR');
+      logger.error({ err, cliente: cli }, 'Error procesando cliente IMOR (NORAGRA)');
       await insertLog(pool, {
         codIdtSap,
         codCtc: 0,

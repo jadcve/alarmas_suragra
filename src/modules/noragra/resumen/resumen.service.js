@@ -1,11 +1,11 @@
-// src/modules/resumen/resumen.service.js
+// src/modules/noragra/resumen/resumen.service.js
 import moment from 'moment';
 import 'moment/locale/es.js';
 
-import { getDb } from '../../db/factory.js';
-import { logger } from '../../logging/logger.js';
-import { buildRecipients, send as sendMail } from '../../common/mailer.js';
-import { table, row, headerRFAC, fmtUSD, fmtCLP, injectPlaceholders } from '../../common/html.js';
+import { getDb } from '../../../db/factory.js';
+import { logger } from '../../../logging/logger.js';
+import { buildRecipients, send as sendMail } from '../../../common/mailer.js';
+import { table, row, headerRFAC, fmtUSD, fmtCLP, injectPlaceholders } from '../../../common/html.js';
 
 import {
   getTemplate,
@@ -18,8 +18,6 @@ import {
 
 // Fila común para RFAC (Documento, Fecha Emisión, IVA, NETO)
 function filaRFAC(r, isUSD) {
-  // En el legado, en USD mostraban IVA en CLP (0 decimales) y NETO en USD (2 decimales).
-  // En CLP, ambos CLP (0 decimales).
   const iva = isUSD ? `CLP ${fmtCLP(r.IMP_IVA_DOC)}` : `CLP ${fmtCLP(r.IMP_IVA_DOC)}`;
   const neto = isUSD ? `USD ${fmtUSD(r.IMP_TOT_NTO)}` : `CLP ${fmtCLP(r.IMP_TOT_NTO)}`;
   return row([r.NUM_FOL, r.FEC_EMI, iva, neto]);
@@ -140,7 +138,7 @@ function buildRFACSections(recordsets) {
     )
   );
 
-  // Totales globales (replican los del legado)
+  // Totales globales
   const totalIVAfinal =
     totals.FAC_USD_IVA + totals.FAC_CLP_IVA +
     totals.NCR_USD_IVA + totals.NCR_CLP_IVA +
@@ -165,14 +163,14 @@ export async function runRFAC() {
   if (!pool?.request) throw new TypeError('DB pool inválido');
 
   const { template, subject } = await getTemplate(pool);
-  logger.info({ subject }, 'Template RFAC cargado');
+  logger.info({ subject }, 'Template RFAC cargado (NORAGRA)');
 
   // Verifica que la campaña RFAC esté activa
   let hayRFAC = false;
   for await (const c of getCampanias(pool)) {
     if (String(c.COD_CNP).trim() === 'RFAC') { hayRFAC = true; break; }
   }
-  if (!hayRFAC) { logger.warn('No hay campaña RFAC — módulo Resumen finaliza.'); return; }
+  if (!hayRFAC) { logger.warn('No hay campaña RFAC — módulo Resumen NORAGRA finaliza.'); return; }
 
   for await (const cli of getClientes(pool)) {
     const codIdtSap = cli.COD_IDT_SAP;
@@ -192,8 +190,8 @@ export async function runRFAC() {
         CLIENTE: `<b>${String(cli.NOM_CLT_SAP ?? '').trim()}</b>`,
         MES: `<b>${mesTexto}</b>`,
         TOTALIVA: fmtCLP(totalIVAfinal),
-        TOTALNETO: fmtUSD(totalNetoUSD),       // USD total
-        TOTALNETOCLP: fmtCLP(totalNetoCLP),    // CLP total
+        TOTALNETO: fmtUSD(totalNetoUSD),
+        TOTALNETOCLP: fmtCLP(totalNetoCLP),
         FACTURAS: htmlSecciones
       });
 
@@ -204,12 +202,12 @@ export async function runRFAC() {
       }
 
       const to = buildRecipients(emailCtc);
-      logger.info({ to, codIdtSap }, 'Enviando RFAC');
-      await sendMail({ subject: `${subject} SURAGRA`, htmlBody: finalHtml, to });
+      logger.info({ to, codIdtSap }, 'Enviando RFAC (NORAGRA)');
+      await sendMail({ subject: `${subject} NORAGRA`, htmlBody: finalHtml, to });
 
       await insertLog(pool, { codIdtSap, codCtc: contactos[0]?.COD_CTC ?? 0, codigo: 0, error: 'EJECUTADO EXITOSAMENTE' });
     } catch (err) {
-      logger.error({ err, cliente: cli }, 'Error procesando cliente RFAC');
+      logger.error({ err, cliente: cli }, 'Error procesando cliente RFAC (NORAGRA)');
       await insertLog(pool, { codIdtSap, codCtc: 0, codigo: 1, error: err?.message ?? String(err) });
     }
   }

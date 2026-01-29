@@ -1,7 +1,7 @@
-// src/modules/iva/iva.repository.mssql.js
+// src/modules/suragra/iva/iva.repository.mssql.js
 import sql from 'mssql';
-import { logger } from '../../logging/logger.js';
-import { streamProc } from '../../db/stream.js';
+import { logger } from '../../../logging/logger.js';
+import { streamProc } from '../../../db/stream.js';
 
 // ⚠️ Ajusta estos nombres si tus SPs tienen otro nombre:
 const PROC_CAMPANIAS = 'SP_SGR_CNA_ALT_CTB_AMZ';            // mismo de NETO (activa campañas)

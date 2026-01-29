@@ -1,5 +1,5 @@
-// src/modules/neto/neto.service.js
-import { getDb } from '../../db/factory.js';
+// src/modules/noragra/neto/neto.service.js
+import { getDb } from '../../../db/factory.js';
 import {
   getTemplate,
   getCampanias,
@@ -8,20 +8,20 @@ import {
   getRegistros,
   insertLog
 } from './neto.repository.mssql.js';
-import { logger } from '../../logging/logger.js';
-import { send as sendMail, buildRecipients } from '../../common/mailer.js';
+import { logger } from '../../../logging/logger.js';
+import { send as sendMail, buildRecipients } from '../../../common/mailer.js';
 
 import moment from 'moment';
 import 'moment/locale/es.js';
 import s from 'underscore.string';
 import formatNumber from 'simple-format-number';
-import * as html from '../../common/html.js';
-import { replaceTokenAll } from '../../common/tokens.js';
+import * as html from '../../../common/html.js';
+import { replaceTokenAll } from '../../../common/tokens.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const logoPath = path.join(__dirname, '../../assets/logo-suragra.png');
+const logoPath = path.join(__dirname, '../../../assets/logo-suragra.png');
 
 // helper para normalizar montos de BD
 const asNum = (v) => {
@@ -29,7 +29,6 @@ const asNum = (v) => {
   if (typeof v === 'number') return isFinite(v) ? v : 0;
   const s = String(v).trim();
   if (!s) return 0;
-  // normaliza: elimina separadores de miles y usa punto decimal
   const norm = s.replace(/\./g, '').replace(',', '.');
   const n = Number(norm);
   return isFinite(n) ? n : 0;
@@ -42,7 +41,7 @@ export async function runNeto() {
   }
 
   const { template, subject } = await getTemplate(pool);
-  logger.info({ subject }, 'Template cargado');
+  logger.info({ subject }, 'Template cargado (NORAGRA NETO)');
 
   // Verifica si hay campaña NMOR
   let hayNMOR = false;
@@ -53,7 +52,7 @@ export async function runNeto() {
     }
   }
   if (!hayNMOR) {
-    logger.warn('No hay campaña NMOR — job finaliza sin acciones.');
+    logger.warn('No hay campaña NMOR — job NORAGRA NETO finaliza sin acciones.');
     return;
   }
 
@@ -146,9 +145,7 @@ export async function runNeto() {
       body = replaceTokenAll(
         body,
         '<<MES>>',
-        `<b>${moment().subtract(10, 'days').format('MMMM')} ${moment().format(
-          'YYYY'
-        )}</b>`
+        `<b>${moment().subtract(10, 'days').format('MMMM')} ${moment().format('YYYY')}</b>`
       );
       body = replaceTokenAll(body, '<FACTURAS>', `${bloqueUSD}${bloqueCLP}`);
       body = replaceTokenAll(
@@ -171,9 +168,9 @@ export async function runNeto() {
       // envío del correo
       const emailCtc = String(contactos[0]?.GLS_EML ?? '').trim();
       const to = buildRecipients(emailCtc);
-      logger.info({ to, codIdtSap }, 'Enviando NETO');
+      logger.info({ to, codIdtSap }, 'Enviando NETO (NORAGRA)');
       await sendMail({ 
-        subject: `${subject} SURAGRA`, 
+        subject: `${subject} NORAGRA`, 
         htmlBody: body, 
         to,
         attachments: [
@@ -195,7 +192,7 @@ export async function runNeto() {
         error: 'EJECUTADO EXITOSAMENTE'
       });
     } catch (err) {
-      logger.error({ err, cliente: cli }, 'Error procesando cliente');
+      logger.error({ err, cliente: cli }, 'Error procesando cliente NORAGRA NETO');
       await insertLog(pool, {
         codIdtSap: cli?.COD_IDT_SAP ?? '',
         codCtc: 0,
