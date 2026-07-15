@@ -11,10 +11,12 @@ export function createMssqlPool(cfg) {
       server: cfg.server,
       database: cfg.database,
       port: cfg.port ?? 1433,
+      connectionTimeout: cfg.connectionTimeout ?? 30000,
+      requestTimeout: cfg.requestTimeout ?? 600000,
       options: {
         encrypt: true,
         trustServerCertificate: true,
-        requestTimeout: 300000,  
+        requestTimeout: cfg.requestTimeout ?? 600000,
       },
       pool: { max: 10, min: 0, idleTimeoutMillis: 30000 }
     });

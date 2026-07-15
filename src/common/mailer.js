@@ -7,12 +7,30 @@ import path from 'path';
 
 const ses = new SESClient({ region: cfg.ses.region });
 
+function normalizeEmail(value) {
+  if (!value) return '';
+  let email = String(value).trim();
+  email = email.replace(/^mailto:/i, '');
+  const bracketMatch = email.match(/<([^>]+)>/);
+  if (bracketMatch?.[1]) email = bracketMatch[1].trim();
+  return email.replace(/\s+/g, '');
+}
+
+function sanitizeAddressList(list = []) {
+  const emails = list
+    .flatMap((value) => String(value ?? '').split(/[;,]/))
+    .map(normalizeEmail)
+    .filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+
+  return [...new Set(emails)];
+}
+
 export function buildRecipients(principal) {
   if (cfg.altTest === 1) {
-    return [principal, ...(cfg.ses.cc || [])].filter(Boolean);
+    return sanitizeAddressList([principal, ...(cfg.ses.cc || [])]);
   }
-  if (cfg.ses.testRecipients?.length) return cfg.ses.testRecipients;
-  if (cfg.fallbackRecipient) return [cfg.fallbackRecipient];
+  if (cfg.ses.testRecipients?.length) return sanitizeAddressList(cfg.ses.testRecipients);
+  if (cfg.fallbackRecipient) return sanitizeAddressList([cfg.fallbackRecipient]);
   throw new Error('Modo test activo (ALT_TEST=0) pero no hay SES_TEST_RECIPIENTS ni FALLBACK_RECIPIENT');
 }
 
@@ -21,13 +39,14 @@ export function buildRecipients(principal) {
  * @param {object} opts
  */
 export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachments = [] }) {
-  if (!to?.length) throw new Error('Destinatarios vacíos');
+  const ToAddresses = sanitizeAddressList(to ?? []);
+  const CcAddresses = sanitizeAddressList(cc ?? cfg.ses.cc ?? []);
+  const BccAddresses = sanitizeAddressList(bcc ?? cfg.ses.bcc ?? []);
+  const ReplyToAddresses = sanitizeAddressList([replyTo || cfg.ses.from]);
+
+  if (!ToAddresses.length) throw new Error('Destinatarios vacíos o inválidos');
   if (!subject) throw new Error('Asunto vacío');
   if (!htmlBody) throw new Error('Cuerpo HTML vacío');
-
-  const CcAddresses = (cc ?? cfg.ses.cc ?? []).filter(Boolean);
-  const BccAddresses = (bcc ?? cfg.ses.bcc ?? []).filter(Boolean);
-  const ReplyToAddresses = [replyTo || cfg.ses.from].filter(Boolean);
 
   // Si hay attachments (inline logo)
  if (attachments.length) {
@@ -37,7 +56,7 @@ export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachment
 
   const rawEmail = [
     `From: ${cfg.ses.from}`,
-    `To: ${to.join(', ')}`,
+    `To: ${ToAddresses.join(', ')}`,
     CcAddresses.length ? `Cc: ${CcAddresses.join(', ')}` : '',
     `Subject: ${subject}`,
     'MIME-Version: 1.0',
@@ -64,16 +83,16 @@ export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachment
   const params = {
     RawMessage: { Data: Buffer.from(rawEmail) },
     Source: cfg.ses.from,
-    Destinations: [...to, ...CcAddresses, ...BccAddresses]
+    Destinations: [...ToAddresses, ...CcAddresses, ...BccAddresses]
   };
 
   if (cfg.dryRun) {
-    logger.info({ to, cc: CcAddresses, subject }, '🟡 DRY_RUN activo: correo NO enviado');
+    logger.info({ to: ToAddresses, cc: CcAddresses, subject }, '🟡 DRY_RUN activo: correo NO enviado');
     return 'dry-run';
   }
 
   const res = await ses.send(new SendRawEmailCommand(params));
-  logger.info({ to, cc: CcAddresses, subject, id: res?.MessageId }, '📎 Correo con logo inline enviado por SES');
+  logger.info({ to: ToAddresses, cc: CcAddresses, subject, id: res?.MessageId }, '📎 Correo con logo inline enviado por SES');
   return res?.MessageId;
 }
 
@@ -81,7 +100,7 @@ export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachment
   // Si no hay attachments → envío normal (tu flujo actual)
   const params = {
     Source: cfg.ses.from,
-    Destination: { ToAddresses: to, CcAddresses, BccAddresses },
+    Destination: { ToAddresses, CcAddresses, BccAddresses },
     Message: {
       Subject: { Charset: 'UTF-8', Data: subject },
       Body: { Html: { Charset: 'UTF-8', Data: htmlBody } }
@@ -90,11 +109,11 @@ export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachment
   };
 
   if (cfg.dryRun) {
-    logger.info({ to, cc: CcAddresses, subject }, '🟡 DRY_RUN activo: correo NO enviado');
+    logger.info({ to: ToAddresses, cc: CcAddresses, subject }, '🟡 DRY_RUN activo: correo NO enviado');
     return 'dry-run';
   }
 
   const res = await ses.send(new SendEmailCommand(params));
-  logger.info({ to, cc: CcAddresses, subject, id: res?.MessageId }, '✉️ Correo enviado por SES');
+  logger.info({ to: ToAddresses, cc: CcAddresses, subject, id: res?.MessageId }, '✉️ Correo enviado por SES');
   return res?.MessageId;
 }

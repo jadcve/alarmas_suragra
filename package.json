@@ -7,6 +7,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:campania": "node src/tools/test-campania-nmor.js",
+    "sur_neto": "node src/modules/suragra/neto/neto.job.js",
+    "sur_resumen": "node src/modules/suragra/resumen/resumen.job.js",
+    "sur_iva": "node src/modules/suragra/iva/iva.job.js",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "lint": "eslint .",

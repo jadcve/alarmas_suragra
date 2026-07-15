@@ -1,7 +1,5 @@
 import { cfg } from './config/index.js';
 import { logger } from './logging/logger.js';
-import { getDb } from './db/factory.js';
-import { sendEmail } from './adapters/ses.adapter.js';
 import { lastDayPrevMonthISO } from './utils/date.js';
 
 // Módulos de Suragra
@@ -12,30 +10,39 @@ import { runRFAC as runResumen } from './modules/suragra/resumen/resumen.service
 import cron from 'node-cron';
 
 async function executeJob(name, fn) {
-  const db = getDb();
   try {
-    const res = await fn(db);
-    if (res.to?.length) await sendEmail({ subject: res.subject, htmlBody: res.html, to: res.to });
-    logger.info({ job:name, sent: res.to?.length ?? 0 }, 'job done');
+    await fn();
+    logger.info({ job: name }, 'job done');
   } catch (e) {
-    logger.error({ job:name, err:e.message }, 'job failed');
-  } finally { db.close?.(); }
+    logger.error({ job: name, err: e.message }, 'job failed');
+  }
 }
+
+logger.info(
+  {
+    altTest: cfg.altTest,
+    dryRun: cfg.dryRun,
+    testRecipients: cfg.ses.testRecipients,
+    cc: cfg.ses.cc,
+    tz: cfg.tz
+  },
+  'Mailer mode loaded'
+);
 
 // IVA — mensual (día 15 a las 08:00 CLT)
 cron.schedule('0 8 15 * *', async () => {
-  await executeJob('IVA', (db)=> runIVA({ db, fechaCorte: lastDayPrevMonthISO(), recipients: cfg.testRecipients }));
+  await executeJob('IVA', () => runIVA({ fechaCorte: lastDayPrevMonthISO() }));
 }, { timezone: cfg.tz });
 
 // RESUMEN — mensual (día 4 a las 08:00 CLT)
 cron.schedule('0 8 4 * *', async () => {
-  await executeJob('RESUMEN', (db)=> runResumen({ db, fechaCorte: lastDayPrevMonthISO(), recipients: cfg.testRecipients }));
+  await executeJob('RESUMEN', () => runResumen({ fechaCorte: lastDayPrevMonthISO() }));
 }, { timezone: cfg.tz });
 
 // NETO — semanal (viernes 07:00 CLT)
 cron.schedule('0 7 * * 5', async () => {
   const hoyISO = new Date().toISOString().slice(0,10);
-  await executeJob('NETO', (db)=> runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }));
+  await executeJob('NETO', () => runNeto({ fechaCorte: hoyISO }));
 }, { timezone: cfg.tz });
 
 // HEARTBEAT — diario (23:55 CLT - PRUEBA) - Notificación de sistema activo
@@ -105,13 +112,8 @@ cron.schedule('55 23 * * *', async () => {
 
 // Al final de src/index.js, agrega un modo "one-shot" por CLI:
 if (process.argv.includes('--run-neto')) {
-  const db = getDb();                         // devolverá pool MSSQL por DB_SOURCE
   const { runNeto } = await import('./modules/suragra/neto/neto.service.js');
-  const hoyISO = new Date().toISOString().slice(0,10);
-  await (async () => {
-    try { await runNeto({ db, fechaCorte: hoyISO, recipients: cfg.testRecipients }); }
-    finally { db.close?.(); }
-  })();
+  await runNeto({ fechaCorte: new Date().toISOString().slice(0,10) });
 }
 
 

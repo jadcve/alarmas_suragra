@@ -34,6 +34,12 @@ const mssql_database = needEither('MSSQL_DATABASE','MSSQL_DB', process.env.MSSQL
 const mssql_user     = need('MSSQL_USER', process.env.MSSQL_USER);
 const mssql_password = needEither('MSSQL_PASSWORD','MSSQL_PASS', process.env.MSSQL_PASSWORD, process.env.MSSQL_PASS);
 const mssql_port     = process.env.MSSQL_PORT ? Number(process.env.MSSQL_PORT) : 1433;
+const mssql_requestTimeout = process.env.MSSQL_REQUEST_TIMEOUT
+  ? Number(process.env.MSSQL_REQUEST_TIMEOUT)
+  : 600000;
+const mssql_connectionTimeout = process.env.MSSQL_CONNECTION_TIMEOUT
+  ? Number(process.env.MSSQL_CONNECTION_TIMEOUT)
+  : 30000;
 
 export const cfg = {
   env: process.env.NODE_ENV ?? 'development',
@@ -48,9 +54,12 @@ export const cfg = {
     user: mssql_user,
     password: mssql_password,      // acepta PASSWORD o PASS
     port: mssql_port,
+    connectionTimeout: mssql_connectionTimeout,
+    requestTimeout: mssql_requestTimeout,
     options: {
       encrypt: bool('MSSQL_ENCRYPT', 'true'),
       trustServerCertificate: bool('MSSQL_TRUST_CERT', 'true'),
+      requestTimeout: mssql_requestTimeout,
       // instanceName: process.env.MSSQL_INSTANCE || undefined, // si usas instancia nombrada
     },
     pool: {
