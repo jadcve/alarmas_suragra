@@ -82,6 +82,7 @@ export const cfg = {
     from: process.env.SES_FROM || 'Cobranza Suragra <no-reply@suragra.com>',
     cc: list('SES_CC'),
     bcc: list('SES_BCC'),
+    testCc: list('SES_TEST_CC'),
     testRecipients: list('SES_TEST_RECIPIENTS'),
   },
 

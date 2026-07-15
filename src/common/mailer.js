@@ -27,7 +27,7 @@ function sanitizeAddressList(list = []) {
 
 export function buildRecipients(principal) {
   if (cfg.altTest === 1) {
-    return sanitizeAddressList([principal, ...(cfg.ses.cc || [])]);
+    return sanitizeAddressList([principal]);
   }
   if (cfg.ses.testRecipients?.length) return sanitizeAddressList(cfg.ses.testRecipients);
   if (cfg.fallbackRecipient) return sanitizeAddressList([cfg.fallbackRecipient]);
@@ -40,7 +40,10 @@ export function buildRecipients(principal) {
  */
 export async function send({ subject, htmlBody, to, cc, bcc, replyTo, attachments = [] }) {
   const ToAddresses = sanitizeAddressList(to ?? []);
-  const CcAddresses = sanitizeAddressList(cc ?? cfg.ses.cc ?? []);
+  const ccSource = cc ?? (cfg.altTest === 0 ? cfg.ses.testCc : cfg.ses.cc);
+  const CcCandidates = sanitizeAddressList(ccSource ?? []);
+  const ToSet = new Set(ToAddresses);
+  const CcAddresses = CcCandidates.filter(email => !ToSet.has(email));
   const BccAddresses = sanitizeAddressList(bcc ?? cfg.ses.bcc ?? []);
   const ReplyToAddresses = sanitizeAddressList([replyTo || cfg.ses.from]);
 
