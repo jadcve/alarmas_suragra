@@ -89,5 +89,6 @@ export const cfg = {
   altTest: Number(process.env.ALT_TEST ?? 1),
   dryRun: bool('DRY_RUN', 'false'),
   fallbackRecipient: process.env.FALLBACK_RECIPIENT || null,
+  healthReportRecipient: process.env.HEALTH_REPORT_RECIPIENT || null,
 
 };

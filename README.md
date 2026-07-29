@@ -113,6 +113,7 @@ DB_SOURCE=MSSQL
 TZ=America/Santiago
 ALT_TEST=0           # 0 = Modo test (solo correos de prueba)
 DRY_RUN=false        # true = No envía correos reales
+HEALTH_REPORT_RECIPIENT=tu@correo.com  # destinatario exclusivo del reporte diario de salud
 LOGO_PATH=src/assets/logo-suragra.png
 
 ```
@@ -159,6 +160,24 @@ docker run --env-file .env alarmas-suragra
 
 ---
 
+## 🛠️ Ejecutarlo sin sesión abierta en Windows
+
+Este proyecto ya incluye un servicio de Windows para dejar el scheduler corriendo en segundo plano.
+
+```bash
+npm run service:install
+```
+
+Para quitarlo:
+
+```bash
+npm run service:uninstall
+```
+
+El servicio ejecuta `src/index.js`, que deja activos los cron jobs de IVA, RESUMEN, NETO y HEARTBEAT aunque cierres tu sesión.
+
+---
+
 ## 🧰 Scripts útiles
 
 | Comando | Descripción |
@@ -181,5 +200,5 @@ Líder Técnico & Fullstack Engineer
 ---
 
 ## 🛡️ Licencia
-© 2025 Suragra. Todos los derechos reservados.  
+© 2025 Meritech Solutions. Todos los derechos reservados.  
 Este repositorio es de uso interno y no se distribuye públicamente.
